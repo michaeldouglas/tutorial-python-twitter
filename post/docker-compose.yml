@@ -1,0 +1,53 @@
+version: '3.8' # Versão do Docker Compose
+services:
+  database:
+    image: ${DATABASE_IMAGE} # Imagem do banco de dados
+    container_name: ${DATABASE_CONTAINER_NAME} # Nome do container
+    restart: always
+    environment:
+      MYSQL_DATABASE: ${DATABASE} # Banco de dados
+      MYSQL_USER: ${DATABASE_USER} # Usuário do banco de dados
+      MYSQL_PASSWORD: ${DATABASE_PASSWORD} # Senha do banco de dados
+      MYSQL_ROOT_PASSWORD: ${DATABASE_ROOT_PASSWORD} # Senha root do banco de dados
+    ports:
+      - ${DATABASE_PORT} # Portal local e porta do docker
+    volumes:
+      - /tmp/data:/var/lib/mysql
+  prometheus:
+    image: ${PROMETHEUS_IMAGE} # Imagem do Prometheus
+    container_name: ${PROMETHEUS_CONTAINER_NAME} # Nome do container
+    restart: always
+    ports:
+      - ${PROMETHEUS_PORT} # Portal local e porta do docker
+    volumes:
+      - ./docker/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+  grafana:
+    image: ${GRAFANA_IMAGE} # Imagem do grafana
+    container_name: ${GRAFANA_CONTAINER_NAME} # Nome do container
+    restart: always
+    ports:
+      - ${GRAFANA_PORT} # Porta do grafana
+    environment:
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER} # Usuario do grafana
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD} # Senha do grafana
+    volumes:
+      - ./grafana_data:/var/lib/grafana
+  mysql_exporter:
+    image: ${DATABASE_MYSQL_EXPORTER_IMAGE} # Imagem do Mysql Exporter
+    container_name: ${DATABASE_MYSQL_EXPORTER_CONTAINER_NAME} # Nome do container
+    restart: unless-stopped
+    environment:
+      DATA_SOURCE_NAME: "${DATABASE_USER_ROOT}:${DATABASE_ROOT_PASSWORD}@(database:3306)/${DATABASE}?tls=false&parseTime=true"
+      MYSQLD_EXPORTER_DISABLE_DEFAULT_METRICS: "false"
+      MYSQLD_EXPORTER_SKIP_METRICS: "mysql_slave_.*,mysql_handler_*"
+      EXTRA_OPTS: "--collect.perf_schema.cpu.eventsstatements=true --collect.perf_schema.memory.eventsstatements=true"
+    command:
+     - "--mysqld.username=${DATABASE_USER_ROOT}:${DATABASE_ROOT_PASSWORD}"
+     - "--mysqld.address=database:3306"
+    ports:
+      - ${DATABASE_MYSQL_EXPORTER_PORT} # Portal do mysql exporter
+    depends_on:
+      - database
+volumes:
+  grafana_data:
+  prometheus_data:
