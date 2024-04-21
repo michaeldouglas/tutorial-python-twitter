@@ -1,13 +1,13 @@
 version: '3.9'
 
 services:
-  jupyter:
-    image: jupyter/datascience-notebook
-    container_name: jupyter
+  stack-data-science:
+    image: stack-data-science
+    container_name: stack-data-science
     ports:
       - "8888:8888"
     volumes:
-      - ./notebooks:/home/jovyan/work
+      - $PWD/notebooks:/opt/notebooks
       - /var/run/docker.sock:/var/run/docker.sock
     environment:
       - CHOWN_HOME=yes
@@ -16,4 +16,4 @@ services:
       - NB_GID=1000
       - GRANT_SUDO=yes
       - JUPYTER_ENABLE_LAB=yes
-    restart: unless-stopped
+    restart: always
