@@ -5,3 +5,4 @@ Repositório do tutorial: Explorando o Twitter com Python: Análise de Sentiment
 Para ler a primeira parte acesse:
 
 - [Parte1](https://medium.com/@mdbaraujo/explorando-o-twitter-com-python-an%C3%A1lise-de-sentimentos-kafka-docker-e-clean-architecture-0c22abdba2f0)
+- [Parte2](https://medium.com/@mdbaraujo/explorando-o-twitter-com-python-an%C3%A1lise-de-sentimentos-kafka-docker-e-clean-architecture-2f1cbd1f78bf)
