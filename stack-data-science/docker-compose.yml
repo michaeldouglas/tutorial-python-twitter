@@ -1,0 +1,19 @@
+version: '3.9'
+
+services:
+  stack-data-science:
+    image: stack-data-science
+    container_name: stack-data-science
+    ports:
+      - "8888:8888"
+    volumes:
+      - $PWD/notebooks:/opt/notebooks
+      - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      - CHOWN_HOME=yes
+      - CHOWN_HOME_OPTS='-R'
+      - NB_UID=1000
+      - NB_GID=1000
+      - GRANT_SUDO=yes
+      - JUPYTER_ENABLE_LAB=yes
+    restart: always
