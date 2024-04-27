@@ -20,23 +20,89 @@ services:
       - ${PROMETHEUS_PORT} # Portal local e porta do docker
     volumes:
       - ./docker/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+    links:
+      - cadvisor:cadvisor
+      - node-exporter:node-exporter
     deploy:
       placement:
         constraints:
           - node.role==manager
       restart_policy:
         condition: on-failure
+  alertmanager:
+    image: prom/alertmanager
+    container_name: alertmanager
+    ports:
+      - 9093:9093
+    volumes:
+      - "./docker/alertmanager/:/etc/alertmanager/"
+    command:
+      - '--config.file=/etc/alertmanager/config.yml'
+      - '--storage.path=/alertmanager'
+    deploy:
+      placement:
+        constraints:
+           - node.role==manager
+      restart_policy:
+        condition: on-failure   
+  cadvisor:
+    image: google/cadvisor:latest
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:rw
+      - /sys:/sys:ro
+      - /var/lib/docker/:/var/lib/docker:ro
+    ports:
+      - 8080:8080
+    deploy:
+      mode: global
+      restart_policy:
+          condition: on-failure
+  node-exporter:
+    image: prom/node-exporter:latest
+    container_name: node_exporter
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/rootfs:ro
+    command: 
+      - '--path.procfs=/host/proc' 
+      - '--path.sysfs=/host/sys'
+      - --collector.filesystem.ignored-mount-points
+      - "^/(sys|proc|dev|host|etc|rootfs/var/lib/docker/containers|rootfs/var/lib/docker/overlay2|rootfs/run/docker/netns|rootfs/var/lib/docker/aufs)($$|/)"
+    ports:
+      - 9100:9100
+    deploy:
+      mode: global
+      restart_policy:
+          condition: on-failure
   grafana:
     image: ${GRAFANA_IMAGE} # Imagem do grafana
     container_name: ${GRAFANA_CONTAINER_NAME} # Nome do container
-    restart: always
     ports:
       - ${GRAFANA_PORT} # Porta do grafana
     environment:
       GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER} # Usuario do grafana
       GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD} # Senha do grafana
+      GF_USERS_ALLOW_SIGN_UP: false
+      GF_SMTP_ENABLED: true
+      GF_SMTP_HOST: smtp-relay.brevo.com:587
+      GF_SMTP_USER: michaeldouglas010790@gmail.com
+      GF_SMTP_PASSWORD: OZ1jwJaxPn953ctW
+      GF_SMTP_FROM_ADDRESS: michaeldouglas010790@gmail.com
     volumes:
       - ./grafana_data:/var/lib/grafana
+    depends_on:
+      - prometheus
+    deploy:
+      placement:
+        constraints:
+          - node.role==manager
+      restart_policy:
+        condition: on-failure
+  
   mysql_exporter:
     image: ${DATABASE_MYSQL_EXPORTER_IMAGE} # Imagem do Mysql Exporter
     container_name: ${DATABASE_MYSQL_EXPORTER_CONTAINER_NAME} # Nome do container
@@ -62,21 +128,62 @@ services:
       ZOOKEEPER_TICK_TIME: ${ZOOKEEPER_TIME}
   kafka:
     image: ${KAFKA_IMAGE}
-    networks: 
+    container_name: kafka
+    networks:
       - broker-kafka
     depends_on:
       - zookeeper
     ports:
-      - ${KAFKA_PORT}:${KAFKA_PORT}
+      - "29092:29092"
     environment:
       KAFKA_BROKER_ID: 1
       KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
-      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:29092,PLAINTEXT_HOST://localhost:${KAFKA_PORT}
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:29092
       KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
       KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
-      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 3
       KAFKA_CONFLUENT_SUPPORT_METRICS_ENABLE: "true"
       KAFKA_CONFLUENT_METRICS_REPORTER_BOOTSTRAP_SERVERS: "kafka:29092"
+      KAFKA_CONFLUENT_METRICS_REPORTER_SECURITY_PROTOCOL: "PLAINTEXT"
+
+  kafka2:
+    image: ${KAFKA_IMAGE}
+    container_name: kafka2
+    networks:
+      - broker-kafka
+    depends_on:
+      - zookeeper
+    ports:
+      - "29091:29091"
+    environment:
+      KAFKA_BROKER_ID: 2
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka2:29091
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 3
+      KAFKA_CONFLUENT_SUPPORT_METRICS_ENABLE: "true"
+      KAFKA_CONFLUENT_METRICS_REPORTER_BOOTSTRAP_SERVERS: "kafka2:29091"
+      KAFKA_CONFLUENT_METRICS_REPORTER_SECURITY_PROTOCOL: "PLAINTEXT"
+
+  kafka3:
+    image: ${KAFKA_IMAGE}
+    container_name: kafka3
+    networks:
+      - broker-kafka
+    depends_on:
+      - zookeeper
+    ports:
+      - "29093:29093"
+    environment:
+      KAFKA_BROKER_ID: 3
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka3:29093
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 3
+      KAFKA_CONFLUENT_SUPPORT_METRICS_ENABLE: "true"
+      KAFKA_CONFLUENT_METRICS_REPORTER_BOOTSTRAP_SERVERS: "kafka3:29093"
       KAFKA_CONFLUENT_METRICS_REPORTER_SECURITY_PROTOCOL: "PLAINTEXT"
   schema-registry:
     container_name: schema_registry
@@ -86,10 +193,26 @@ services:
     environment:
       SCHEMA_REGISTRY_KAFKASTORE_BOOTSTRAP_SERVERS: "PLAINTEXT://kafka:29092"
       SCHEMA_REGISTRY_HOST_NAME: schema-registry
+      SCHEMA_COMPATIBILITY: "FULL"
+      SCHEMA_REGISTRY_ACCESS_CONTROL_ALLOW_METHODS: GET,POST,PUT,DELETE,OPTIONS,HEAD
+      SCHEMA_REGISTRY_ACCESS_CONTROL_ALLOW_ORIGIN: '*' 
     networks: 
       - broker-kafka
     depends_on:
       - kafka
+  schema-registry-ui:
+    image: landoop/schema-registry-ui:latest
+    container_name: schema-registry-ui
+    environment:
+      SCHEMAREGISTRY_URL: "http://localhost:8081"
+      SCHEMA_REGISTRY_UI_BASIC_AUTH_USER: "admin"
+      SCHEMA_REGISTRY_UI_BASIC_AUTH_PASS: "admin"
+    ports:
+      - "8000:8000"
+    depends_on:
+      - schema-registry
+    networks: 
+      - broker-kafka
   kafdrop:
     image: obsidiandynamics/kafdrop
     networks: 
@@ -101,7 +224,7 @@ services:
       - ${KAFDROP_PORT}:${KAFDROP_PORT}
     environment:
       KAFKA_BROKERCONNECT: kafka:29092
-      KAFKA_REGISTRYCONNECT: schema-registry:8081  
+      KAFKA_REGISTRYCONNECT: schema-registry:8081 
   connect:
     image: cnfldemos/kafka-connect-datagen:0.6.2-7.5.0
     hostname: connect
