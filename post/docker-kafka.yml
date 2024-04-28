@@ -1,21 +1,21 @@
 version: '3.8' # Versão do Docker Compose
 services:
   zookeeper:
-    image: ${ZOOKEEPER_IMAGE}
+    image: ${ZOOKEEPER_IMAGE} # Imagem Docker para Zookeeper
     networks: 
       - broker-kafka
     environment:
-      ZOOKEEPER_CLIENT_PORT: ${ZOOKEEPER_PORT}
-      ZOOKEEPER_TICK_TIME: ${ZOOKEEPER_TIME}
+      ZOOKEEPER_CLIENT_PORT: ${ZOOKEEPER_PORT} # Porta do cliente Zookeeper
+      ZOOKEEPER_TICK_TIME: ${ZOOKEEPER_TIME} # Tempo do tick do Zookeeper
   kafka:
-    image: ${KAFKA_IMAGE}
-    container_name: ${KAFKA_CONTAINER_NAME}
+    image: ${KAFKA_IMAGE} # Imagem Docker para Kafka
+    container_name: ${KAFKA_CONTAINER_NAME} # Nome do container Kafka
     networks:
       - broker-kafka
     depends_on:
       - zookeeper
     ports:
-      - ${KAFKA_PORT}
+      - ${KAFKA_PORT} # Porta Kafka
     environment:
       KAFKA_BROKER_ID: 1
       KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
@@ -27,14 +27,14 @@ services:
       KAFKA_CONFLUENT_METRICS_REPORTER_BOOTSTRAP_SERVERS: "kafka:29092"
       KAFKA_CONFLUENT_METRICS_REPORTER_SECURITY_PROTOCOL: "PLAINTEXT"
   kafka2:
-    image: ${KAFKA_IMAGE}
-    container_name: ${KAFKA2_CONTAINER_NAME}
+    image: ${KAFKA_IMAGE} # Imagem Docker para Kafka
+    container_name: ${KAFKA2_CONTAINER_NAME} # Nome do container Kafka
     networks:
       - broker-kafka
     depends_on:
       - zookeeper
     ports:
-      - ${KAFKA2_PORT}
+      - ${KAFKA2_PORT} # Porta Kafka
     environment:
       KAFKA_BROKER_ID: 2
       KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
@@ -46,14 +46,14 @@ services:
       KAFKA_CONFLUENT_METRICS_REPORTER_BOOTSTRAP_SERVERS: "kafka2:29091"
       KAFKA_CONFLUENT_METRICS_REPORTER_SECURITY_PROTOCOL: "PLAINTEXT"
   kafka3:
-    image: ${KAFKA_IMAGE}
-    container_name: ${KAFKA3_CONTAINER_NAME}
+    image: ${KAFKA_IMAGE} # Imagem Docker para Kafka
+    container_name: ${KAFKA3_CONTAINER_NAME} # Nome do container Kafka
     networks:
       - broker-kafka
     depends_on:
       - zookeeper
     ports:
-      - ${KAFKA3_PORT}
+      - ${KAFKA3_PORT} # Porta Kafka
     environment:
       KAFKA_BROKER_ID: 3
       KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
@@ -65,10 +65,10 @@ services:
       KAFKA_CONFLUENT_METRICS_REPORTER_BOOTSTRAP_SERVERS: "kafka3:29093"
       KAFKA_CONFLUENT_METRICS_REPORTER_SECURITY_PROTOCOL: "PLAINTEXT"
   schema-registry:
-    image: ${SCHEMA_REGISTRY_IMAGE}
-    container_name: ${SCHEMA_REGISTRY_CONTAINER_NAME}
+    image: ${SCHEMA_REGISTRY_IMAGE} # Imagem Docker para Schema Registry
+    container_name: ${SCHEMA_REGISTRY_CONTAINER_NAME} # Nome do container Schema Registry
     ports:
-      - ${SCHEMA_REGISTRY_PORT}
+      - ${SCHEMA_REGISTRY_PORT} # Porta do Schema Registry
     environment:
       SCHEMA_REGISTRY_KAFKASTORE_BOOTSTRAP_SERVERS: "PLAINTEXT://kafka:29092"
       SCHEMA_REGISTRY_HOST_NAME: schema-registry
@@ -80,33 +80,33 @@ services:
     depends_on:
       - kafka
   schema-registry-ui:
-    image: ${SCHEMA_REGISTRY_UI_IMAGE}
-    container_name: ${SCHEMA_REGISTRY_UI_CONTAINER_NAME}
+    image: ${SCHEMA_REGISTRY_UI_IMAGE} # Imagem Docker para a interface do Schema Registry
+    container_name: ${SCHEMA_REGISTRY_UI_CONTAINER_NAME} # Nome do container da interface do Schema Registry
     environment:
       SCHEMAREGISTRY_URL: "http://localhost:8081"
       SCHEMA_REGISTRY_UI_BASIC_AUTH_USER: "admin"
       SCHEMA_REGISTRY_UI_BASIC_AUTH_PASS: "admin"
     ports:
-      - ${SCHEMA_REGISTRY_UI_PORT}
+      - ${SCHEMA_REGISTRY_UI_PORT} # Porta da interface do Schema Registry
     depends_on:
       - schema-registry
     networks: 
       - broker-kafka
   kafdrop:
-    image: ${KAFDROP_IMAGE}
-    container_name: ${KAFDROP_CONTAINER_NAME}
+    image: ${KAFDROP_IMAGE} # Imagem Docker para Kafdrop
+    container_name: ${KAFDROP_CONTAINER_NAME} # Nome do container Kafdrop
     networks: 
       - broker-kafka
     depends_on:
       - kafka
       - schema-registry
     ports:
-      - ${KAFDROP_PORT}:${KAFDROP_PORT}
+      - ${KAFDROP_PORT}:${KAFDROP_PORT} # Porta do Kafdrop
     environment:
       KAFKA_BROKERCONNECT: kafka:29092
       KAFKA_REGISTRYCONNECT: schema-registry:8081 
   connect:
-    image: ${CONNECT_IMAGE}
+    image: ${CONNECT_IMAGE} # Imagem Docker para Kafka Connect
     hostname: ${CONNECT_CONTAINER_NAME}
     container_name: ${CONNECT_CONTAINER_NAME}
     networks: 
@@ -115,7 +115,7 @@ services:
       - kafka
       - schema-registry
     ports:
-      - ${CONNECT_PORT}
+      - ${CONNECT_PORT} # Porta do Kafka Connect
     environment:
       CONNECT_BOOTSTRAP_SERVERS: 'kafka:29092'
       CONNECT_REST_ADVERTISED_HOST_NAME: connect
@@ -133,7 +133,7 @@ services:
       CONNECT_PLUGIN_PATH: "/usr/share/java,/usr/share/confluent-hub-components"
       CONNECT_LOG4J_LOGGERS: org.apache.zookeeper=ERROR,org.I0Itec.zkclient=ERROR,org.reflections=ERROR
   ksqldb-server:
-    image: ${KSQLDB_IMAGE}
+    image: ${KSQLDB_IMAGE} # Imagem Docker para ksqlDB
     hostname: ${KSQLDB_CONTAINER_NAME}
     container_name: ${KSQLDB_CONTAINER_NAME}
     networks: 
@@ -142,7 +142,7 @@ services:
       - kafka
       - connect
     ports:
-      - ${KSQLDB_PORT}
+      - ${KSQLDB_PORT} # Porta do ksqlDB
     environment:
       KSQL_CONFIG_DIR: "/etc/ksql"
       KSQL_BOOTSTRAP_SERVERS: "PLAINTEXT://kafka:29092"
@@ -160,8 +160,8 @@ services:
       timeout: 20s
       retries: 5
   ksqldb-cli:
-    image: ${KSQLDB_CLI_IMAGE}
-    container_name: ${KSQLDB_CLI_CONTAINER_NAME}
+    image: ${KSQLDB_CLI_IMAGE} # Imagem Docker para ksqlDB CLI
+    container_name: ${KSQLDB_CLI_CONTAINER_NAME} # Nome do container ksqlDB CLI
     depends_on:
       - kafka
       - connect
@@ -171,15 +171,14 @@ services:
     entrypoint: /bin/sh
     tty: true
   rest-proxy:
-    image: ${REST_PROXY_IMAGE}
-    container_name: ${REST_PROXY_CONTAINER_NAME}
+    image: ${REST_PROXY_IMAGE} # Imagem Docker para Kafka REST Proxy
     depends_on:
       - kafka
       - schema-registry
     networks: 
       - broker-kafka
     ports:
-      - ${REST_PROXY_PORT}
+      - ${REST_PROXY_PORT} # Porta do Kafka REST Proxy
     hostname: rest-proxy
     container_name: rest-proxy
     environment:
@@ -187,6 +186,7 @@ services:
       KAFKA_REST_BOOTSTRAP_SERVERS: 'kafka:29092'
       KAFKA_REST_LISTENERS: "http://0.0.0.0:8082"
       KAFKA_REST_SCHEMA_REGISTRY_URL: 'http://schema-registry:8081'
+
 networks: 
   broker-kafka:
     driver: bridge
