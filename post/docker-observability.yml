@@ -1,0 +1,95 @@
+version: '3.8' # Versão do Docker Compose
+services:
+  prometheus:
+    image: ${PROMETHEUS_IMAGE} # Imagem do Prometheus
+    container_name: ${PROMETHEUS_CONTAINER_NAME} # Nome do container
+    ports:
+      - ${PROMETHEUS_PORT} # Portal local e porta do docker
+    volumes:
+      - ./docker/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml # Mapeamento do arquivo de configuração do Prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml' # Configuração do arquivo de configuração do Prometheus
+    links:
+      - cadvisor:cadvisor # Link para o serviço cadvisor
+      - node-exporter:node-exporter # Link para o serviço node-exporter
+    deploy:
+      placement:
+        constraints:
+          - node.role==manager # Restringe o serviço ao nó manager
+      restart_policy:
+        condition: on-failure # Política de reinicialização em caso de falha
+  alertmanager:
+    image: ${ALERTMANAGER_IMAGE} # Imagem do Alertmanager
+    container_name: ${ALERTMANAGER_CONTAINER_NAME} # Nome do container
+    ports:
+      - ${ALERTMANAGER_PORT} # Porta do Alertmanager
+    volumes:
+      - "./docker/alertmanager/:/etc/alertmanager/" # Mapeamento do diretório de configuração do Alertmanager
+    command:
+      - '--config.file=/etc/alertmanager/config.yml' # Configuração do arquivo de configuração do Alertmanager
+      - '--storage.path=/alertmanager' # Configuração do diretório de armazenamento do Alertmanager
+    deploy:
+      placement:
+        constraints:
+           - node.role==manager # Restringe o serviço ao nó manager
+      restart_policy:
+        condition: on-failure # Política de reinicialização em caso de falha
+  cadvisor:
+    image: ${CADVISOR_IMAGE} # Imagem do cAdvisor
+    container_name: ${CADVISOR_CONTAINER_NAME} # Nome do container
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:rw
+      - /sys:/sys:ro
+      - /var/lib/docker/:/var/lib/docker:ro # Mapeamento do diretório do Docker
+    ports:
+      - ${CADVISOR_PORT} # Porta do cAdvisor
+    deploy:
+      mode: global # Modo global para garantir que o serviço seja executado em todos os nós
+      restart_policy:
+          condition: on-failure # Política de reinicialização em caso de falha
+  node-exporter:
+    image: ${NODE_EXPORTER_IMAGE} # Imagem do Node Exporter
+    container_name: ${NODE_EXPORTER_CONTAINER_NAME} # Nome do container
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/rootfs:ro
+    command: 
+      - '--path.procfs=/host/proc' 
+      - '--path.sysfs=/host/sys'
+      - --collector.filesystem.ignored-mount-points
+      - "^/(sys|proc|dev|host|etc|rootfs/var/lib/docker/containers|rootfs/var/lib/docker/overlay2|rootfs/run/docker/netns|rootfs/var/lib/docker/aufs)($$|/)" # Configuração para ignorar pontos de montagem
+    ports:
+      - ${NODE_EXPORTER_PORT} # Porta do Node Exporter
+    deploy:
+      mode: global # Modo global para garantir que o serviço seja executado em todos os nós
+      restart_policy:
+          condition: on-failure # Política de reinicialização em caso de falha
+  grafana:
+    image: ${GRAFANA_IMAGE} # Imagem do Grafana
+    container_name: ${GRAFANA_CONTAINER_NAME} # Nome do container
+    ports:
+      - ${GRAFANA_PORT} # Porta do Grafana
+    environment:
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER} # Usuario do Grafana
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD} # Senha do Grafana
+      GF_USERS_ALLOW_SIGN_UP: false
+      GF_SMTP_ENABLED: true
+      GF_SMTP_HOST: smtp-qualquer.com:587
+      GF_SMTP_USER: tutorial@python.com
+      GF_SMTP_PASSWORD: SENHA
+      GF_SMTP_FROM_ADDRESS: tutorial@python.com # Configuração do servidor SMTP
+    volumes:
+      - ./grafana_data:/var/lib/grafana # Mapeamento do diretório de dados do Grafana
+    depends_on:
+      - prometheus # Dependência do serviço Prometheus
+    deploy:
+      placement:
+        constraints:
+          - node.role==manager # Restringe o serviço ao nó manager
+      restart_policy:
+        condition: on-failure # Política de reinicialização em caso de falha
+
+volumes:
+  grafana_data: # Volume para persistência de dados do Grafana
