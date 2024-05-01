@@ -15,4 +15,12 @@ repos:
             "--load-plugins=pylint.extensions.docparams",
             "post/app",
           ]
+  - repo: local
+    hooks:
+      - id: requirements
+        name: requirements
+        entry: bash -c 'pip freeze > post/app/requirements.txt; git add post/app/requirements.txt'
+        language: system
+        pass_filenames: false
+        stages: [commit]
         
